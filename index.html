@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Học Tương Tác: Lập Phương Trình</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- MathJax for rendering math formulas -->
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        body {
+            font-family: 'Nunito', sans-serif;
+            background-color: #f1f5f9;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out forwards;
+            opacity: 0;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .highlight-text {
+            background-color: #fef08a;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+
+        .highlight-active {
+            background-color: #fde047;
+            box-shadow: 0 0 0 2px #eab308;
+        }
+
+        .math-box {
+            font-size: 1.25rem;
+        }
+
+        .cell-hidden {
+            visibility: hidden;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .cell-visible {
+            visibility: visible;
+            opacity: 1;
+            animation: fadeIn 0.4s;
+        }
+    </style>
+</head>
+
+<body class="h-screen flex overflow-hidden text-slate-800">
+
+    <!-- Sidebar -->
+    <aside class="w-80 bg-white shadow-xl z-10 flex flex-col h-full">
+        <div class="p-6 bg-blue-600 text-white">
+            <h1 class="text-2xl font-bold flex items-center gap-2">
+                <i data-lucide="calculator"></i> Toán 8
+            </h1>
+            <p class="text-blue-100 text-sm mt-2">Giải bài toán bằng cách lập phương trình</p>
+        </div>
+
+        <div class="p-4 flex-1 overflow-y-auto">
+            <p class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Chọn bài toán</p>
+            <div class="space-y-3" id="problem-list">
+                <!-- Nút chọn bài sẽ được tạo bằng JS -->
+            </div>
+        </div>
+
+        <div class="p-4 border-t bg-slate-50">
+            <button id="open-builder-btn"
+                class="w-full mb-3 flex justify-center items-center gap-2 py-2 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors font-semibold">
+                <i data-lucide="plus-circle" class="w-4 h-4"></i> Thêm bài tập mới
+            </button>
+            <button id="reset-btn"
+                class="w-full flex justify-center items-center gap-2 py-2 px-4 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg transition-colors font-semibold">
+                <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Làm lại từ đầu
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col h-full overflow-y-auto relative bg-slate-50">
+        <!-- Header -->
+        <header class="bg-white p-6 shadow-sm border-b flex justify-between items-center sticky top-0 z-20">
+            <h2 id="current-title" class="text-2xl font-bold text-slate-800 flex items-center gap-3">
+                <span class="p-2 bg-blue-100 text-blue-600 rounded-lg"><i id="title-icon"
+                        data-lucide="book-open"></i></span>
+                Tiêu đề bài toán
+            </h2>
+            <div class="flex items-center gap-4">
+                <div class="text-sm font-semibold text-slate-500 bg-slate-100 px-4 py-2 rounded-full">
+                    Bước <span id="step-counter" class="text-blue-600 text-lg">0</span> / <span
+                        id="total-steps">0</span>
+                </div>
+                <button id="next-btn"
+                    class="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-full font-bold transition-all transform hover:scale-105 shadow-md disabled:opacity-50 disabled:hover:scale-100 disabled:cursor-not-allowed">
+                    Bước tiếp theo <i data-lucide="arrow-right" class="w-5 h-5"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Content Area -->
+        <div class="p-8 max-w-6xl mx-auto w-full space-y-8 pb-20">
+
+            <!-- Đề bài -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                <h3 class="text-lg font-bold text-blue-600 mb-3 flex items-center gap-2">
+                    <i data-lucide="file-text" class="w-5 h-5"></i> Đề bài
+                </h3>
+                <div id="problem-text" class="text-lg leading-relaxed text-slate-700">
+                    <!-- Text đề bài render ở đây -->
+                </div>
+            </div>
+
+            <!-- Phân tích & Bảng -->
+            <div id="analysis-section" class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hidden">
+                <h3 class="text-lg font-bold text-emerald-600 mb-4 flex items-center gap-2">
+                    <i data-lucide="table" class="w-5 h-5"></i> Bảng phân tích đại lượng
+                </h3>
+
+                <div id="hint-text"
+                    class="mb-4 text-emerald-700 bg-emerald-50 p-3 rounded-lg border border-emerald-100 font-medium italic transition-all hidden">
+                    <!-- Gợi ý hiển thị ở đây -->
+                </div>
+
+                <div class="overflow-x-auto rounded-xl border border-slate-200">
+                    <table class="w-full text-left border-collapse" id="data-table">
+                        <!-- Bảng render ở đây -->
+                    </table>
+                </div>
+            </div>
+
+            <!-- Phương trình -->
+            <div id="equation-section"
+                class="bg-blue-50 p-8 rounded-2xl shadow-inner border-2 border-blue-200 hidden text-center transform transition-all">
+                <h3 class="text-xl font-bold text-blue-800 mb-4 flex justify-center items-center gap-2">
+                    <i data-lucide="check-circle" class="w-6 h-6"></i> Phương Trình Cần Lập
+                </h3>
+                <div id="equation-box"
+                    class="bg-white py-6 px-10 rounded-xl shadow-sm inline-block min-w-[300px] border border-blue-100">
+                    <!-- MathJax equation renders here -->
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Builder Modal -->
+    <div id="builder-modal" class="fixed inset-0 bg-slate-900/60 z-40 hidden items-center justify-center p-4">
+        <div class="bg-white w-full max-w-5xl max-h-[95vh] rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+            <div class="px-6 py-4 border-b bg-emerald-50 flex items-center justify-between">
+                <h3 id="builder-modal-title" class="text-xl font-bold text-emerald-700 flex items-center gap-2">
+                    <i data-lucide="pencil-ruler" class="w-5 h-5"></i> Soạn bài tập mới (dễ dùng)
+                </h3>
+                <button id="close-builder-btn"
+                    class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold">Đóng</button>
+            </div>
+
+            <div class="p-6 overflow-y-auto space-y-6">
+                <div class="bg-emerald-50 border border-emerald-100 rounded-xl p-4 text-sm text-emerald-800 space-y-1">
+                    <p class="font-bold">Cách soạn nhanh (3 bước):</p>
+                    <p>1) Nhập đề bài và bảng phân tích.</p>
+                    <p>2) Thêm các bước hướng dẫn theo thứ tự dạy trên lớp.</p>
+                    <p>3) Nhập phương trình cuối cùng rồi bấm Lưu bài tập.</p>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold text-slate-600 mb-2">Tiêu đề bài toán</label>
+                    <input id="builder-title" type="text" placeholder="Ví dụ: Bài toán làm chung công việc"
+                        class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-300">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold text-slate-600 mb-2">Đề bài</label>
+                    <textarea id="builder-text" rows="4"
+                        class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-300"
+                        placeholder="Nhập nguyên văn đề bài ở đây..."></textarea>
+                    <p class="mt-1 text-xs text-slate-500">Nếu muốn tô sáng chữ trong đề, dùng dạng nâng cao với mã như hl-1, hl-2.</p>
+                </div>
+
+                <details class="border border-slate-200 rounded-xl p-4 bg-slate-50">
+                    <summary class="cursor-pointer font-bold text-slate-700">Tùy chọn nâng cao (có thể bỏ qua)</summary>
+                    <div class="mt-3">
+                        <label class="block text-sm font-bold text-slate-600 mb-2">Biểu tượng (Icon Lucide)</label>
+                        <input id="builder-icon" type="text" value="book-open" placeholder="Ví dụ: bike, shopping-cart"
+                            class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-300">
+                    </div>
+                </details>
+
+                <div>
+                    <label class="block text-sm font-bold text-slate-600 mb-2">Tiêu đề các cột trong bảng (ngăn cách bằng dấu phẩy)</label>
+                    <input id="builder-headers" type="text"
+                        value="Trạng thái, Đại lượng 1, Đại lượng 2, Đại lượng 3"
+                        class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-300">
+                    <p class="mt-1 text-xs text-slate-500">Cột đầu là tên dòng, các cột sau là dữ liệu sẽ hiện dần theo từng bước.</p>
+                </div>
+
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between">
+                        <h4 class="font-bold text-slate-700">Các dòng của bảng</h4>
+                        <button id="add-row-btn" type="button"
+                            class="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold">+ Thêm dòng</button>
+                    </div>
+                    <div id="builder-rows" class="space-y-3"></div>
+                    <p class="text-xs text-slate-500">Mỗi dòng: nhập tên dòng và các ô dữ liệu (ngăn cách bằng dấu phẩy).</p>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold text-slate-600 mb-2">Phương trình cần lập</label>
+                    <input id="builder-equation" type="text" placeholder="Ví dụ: \\[ \\frac{x}{12} + \\frac{x}{18} = 1 \\]"
+                        class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-300">
+                </div>
+
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between">
+                        <h4 class="font-bold text-slate-700">Các bước hướng dẫn</h4>
+                        <div class="flex items-center gap-2">
+                            <button id="add-init-step-btn" type="button"
+                                class="px-3 py-1.5 rounded-lg bg-slate-600 hover:bg-slate-700 text-white text-sm font-semibold">+ Bước mở đầu</button>
+                            <button id="add-cell-step-btn" type="button"
+                                class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold">+ Bước hiện ô</button>
+                            <button id="add-equation-step-btn" type="button"
+                                class="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold">+ Bước phương trình</button>
+                        </div>
+                    </div>
+                    <div id="builder-steps" class="space-y-3"></div>
+                    <p class="text-xs text-slate-500">Lưu ý: Hàng/Cột nhập theo thứ tự 1, 2, 3... để dễ thao tác.</p>
+                </div>
+
+                <div id="builder-error" class="hidden text-sm font-semibold text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2"></div>
+            </div>
+
+            <div class="px-6 py-4 border-t bg-slate-50 flex justify-end gap-3">
+                <button id="cancel-builder-btn"
+                    class="px-4 py-2 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold">Hủy</button>
+                <button id="save-problem-btn"
+                    class="px-5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold">Lưu bài tập</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- DỮ LIỆU CÁC BÀI TOÁN ---
+        const baseProblems = [
+            {
+                id: 'p1',
+                title: 'Bài toán Năng suất Xưởng may',
+                icon: 'shirt',
+                text: 'Một xưởng may quần áo, theo kế hoạch mỗi ngày sản xuất được <span id="hl-1" class="highlight-text">380 bộ</span> quần áo. Nhưng khi thực hiện do cải tiến kĩ thuật, mỗi ngày xưởng may được <span id="hl-2" class="highlight-text">480 bộ</span> quần áo. Do đó, xưởng đã hoàn thành <span id="hl-3" class="highlight-text">trước kế hoạch 1 ngày</span> và còn <span id="hl-4" class="highlight-text">vượt mức 20 bộ</span> quần áo. Hỏi theo kế hoạch, xưởng phải may bao nhiêu bộ quần áo?',
+                tableHeaders: ['Trạng thái', 'Năng suất (bộ/ngày)', 'Tổng sản phẩm (bộ)', 'Thời gian (ngày)'],
+                tableRows: [
+                    { label: 'Kế hoạch', cells: ['380', '\\(x\\)', '\\(\\frac{x}{380}\\)'] },
+                    { label: 'Thực tế', cells: ['480', '\\(x + 20\\)', '\\(\\frac{x + 20}{480}\\)'] }
+                ],
+                equation: '\\[ \\frac{x}{380} - \\frac{x + 20}{480} = 1 \\]',
+                steps: [
+                    { type: 'init', desc: 'Đọc kỹ đề bài. Ta gọi x là số bộ quần áo theo kế hoạch (x > 0).' },
+                    { type: 'cell', row: 0, col: 1, hl: null, desc: 'Gọi x là tổng sản phẩm theo kế hoạch.' },
+                    { type: 'cell', row: 0, col: 0, hl: 'hl-1', desc: 'Theo kế hoạch, mỗi ngày làm được 380 bộ.' },
+                    { type: 'cell', row: 0, col: 2, hl: null, desc: 'Thời gian Kế hoạch = Tổng SP / Năng suất.' },
+                    { type: 'cell', row: 1, col: 0, hl: 'hl-2', desc: 'Thực tế, năng suất tăng lên 480 bộ/ngày.' },
+                    { type: 'cell', row: 1, col: 1, hl: 'hl-4', desc: 'Thực tế làm vượt mức 20 bộ, nên tổng SP là x + 20.' },
+                    { type: 'cell', row: 1, col: 2, hl: null, desc: 'Thời gian Thực tế = Tổng SP thực tế / Năng suất thực tế.' },
+                    { type: 'equation', hl: 'hl-3', desc: 'Hoàn thành trước 1 ngày, nghĩa là: Thời gian KH - Thời gian TT = 1.' }
+                ]
+            },
+            {
+                id: 'p2',
+                title: 'Bài toán Mua sắm Điện máy',
+                icon: 'shopping-cart',
+                text: 'Tổng giá niêm yết của một chiếc tivi loại A và một tủ lạnh loại B là <span id="hl-1" class="highlight-text">36,8 triệu đồng</span>. Tivi được <span id="hl-2" class="highlight-text">giảm giá 30%</span> và tủ lạnh được <span id="hl-3" class="highlight-text">giảm giá 25%</span> nên bác Cường đã mua cả 2 với tổng số tiền là <span id="hl-4" class="highlight-text">26,805 triệu đồng</span>. Hỏi giá niêm yết của mỗi loại là bao nhiêu?',
+                tableHeaders: ['Sản phẩm', 'Giá niêm yết (triệu)', 'Tỉ lệ giá bán', 'Giá bán thực tế (triệu)'],
+                tableRows: [
+                    { label: 'Tivi loại A', cells: ['\\(x\\)', '100% - 30% = 70%', '\\(0.7x\\)'] },
+                    { label: 'Tủ lạnh loại B', cells: ['\\(36.8 - x\\)', '100% - 25% = 75%', '\\(0.75(36.8 - x)\\)'] }
+                ],
+                equation: '\\[ 0.7x + 0.75(36.8 - x) = 26.805 \\]',
+                steps: [
+                    { type: 'init', desc: 'Gọi x (triệu đồng) là giá niêm yết của Tivi (0 < x < 36.8).' },
+                    { type: 'cell', row: 0, col: 0, hl: null, desc: 'Đặt giá niêm yết Tivi là x.' },
+                    { type: 'cell', row: 1, col: 0, hl: 'hl-1', desc: 'Vì tổng là 36.8 triệu, nên giá Tủ lạnh là 36.8 - x.' },
+                    { type: 'cell', row: 0, col: 1, hl: 'hl-2', desc: 'Tivi giảm 30%, tức là giá bán chỉ còn 70% (0.7).' },
+                    { type: 'cell', row: 0, col: 2, hl: null, desc: 'Giá bán thực tế của Tivi là 0.7 nhân với x.' },
+                    { type: 'cell', row: 1, col: 1, hl: 'hl-3', desc: 'Tủ lạnh giảm 25%, tức là giá bán còn 75% (0.75).' },
+                    { type: 'cell', row: 1, col: 2, hl: null, desc: 'Giá bán thực tế của Tủ lạnh.' },
+                    { type: 'equation', hl: 'hl-4', desc: 'Tổng tiền phải trả là 26.805 triệu. Ta cộng 2 cột giá bán lại.' }
+                ]
+            },
+            {
+                id: 'p3',
+                title: 'Bài toán Chuyển động (PDF 6.1)',
+                icon: 'bike',
+                text: 'Một người đi xe máy từ A đến B với vận tốc <span id="hl-1" class="highlight-text">25 km/h</span>. Lúc về người đó đi với vận tốc <span id="hl-2" class="highlight-text">30 km/h</span> nên thời gian về <span id="hl-3" class="highlight-text">ít hơn</span> thời gian đi là <span id="hl-4" class="highlight-text">20 phút</span>. Tính quãng đường AB.',
+                tableHeaders: ['Quá trình', 'Vận tốc (km/h)', 'Quãng đường (km)', 'Thời gian (h)'],
+                tableRows: [
+                    { label: 'Lúc đi (A -> B)', cells: ['25', '\\(x\\)', '\\(\\frac{x}{25}\\)'] },
+                    { label: 'Lúc về (B -> A)', cells: ['30', '\\(x\\)', '\\(\\frac{x}{30}\\)'] }
+                ],
+                equation: '\\[ \\frac{x}{25} - \\frac{x}{30} = \\frac{1}{3} \\]',
+                steps: [
+                    { type: 'init', desc: 'Đổi 20 phút = 1/3 giờ. Gọi x là chiều dài quãng đường AB (x > 0).' },
+                    { type: 'cell', row: 0, col: 1, hl: null, desc: 'Quãng đường lúc đi là x.' },
+                    { type: 'cell', row: 1, col: 1, hl: null, desc: 'Quãng đường lúc về cũng là x (cùng là AB).' },
+                    { type: 'cell', row: 0, col: 0, hl: 'hl-1', desc: 'Vận tốc lúc đi là 25 km/h.' },
+                    { type: 'cell', row: 0, col: 2, hl: null, desc: 'Thời gian đi = Quãng đường / Vận tốc.' },
+                    { type: 'cell', row: 1, col: 0, hl: 'hl-2', desc: 'Vận tốc lúc về là 30 km/h.' },
+                    { type: 'cell', row: 1, col: 2, hl: null, desc: 'Thời gian về = Quãng đường / Vận tốc.' },
+                    { type: 'equation', hl: 'hl-3', desc: 'Thời gian về ít hơn thời gian đi 1/3 giờ. Ta có phương trình.' }
+                ]
+            }
+        ];
+
+        const STORAGE_KEY = 'mathEqCustomProblemsV1';
+        let problems = [...baseProblems];
+        let editingProblemId = null;
+        let builderViewMode = false;
+
+        // --- STATE QUẢN LÝ ---
+        let currentProblemId = problems[0].id;
+        let currentStep = 0;
+
+        // --- DOM ELEMENTS ---
+        const dom = {
+            problemList: document.getElementById('problem-list'),
+            currentTitle: document.getElementById('current-title'),
+            titleIcon: document.getElementById('title-icon'),
+            problemText: document.getElementById('problem-text'),
+            dataTable: document.getElementById('data-table'),
+            analysisSection: document.getElementById('analysis-section'),
+            equationSection: document.getElementById('equation-section'),
+            equationBox: document.getElementById('equation-box'),
+            stepCounter: document.getElementById('step-counter'),
+            totalSteps: document.getElementById('total-steps'),
+            nextBtn: document.getElementById('next-btn'),
+            resetBtn: document.getElementById('reset-btn'),
+            hintText: document.getElementById('hint-text'),
+            openBuilderBtn: document.getElementById('open-builder-btn'),
+            builderModal: document.getElementById('builder-modal'),
+            closeBuilderBtn: document.getElementById('close-builder-btn'),
+            cancelBuilderBtn: document.getElementById('cancel-builder-btn'),
+            saveProblemBtn: document.getElementById('save-problem-btn'),
+            builderModalTitle: document.getElementById('builder-modal-title'),
+            builderTitle: document.getElementById('builder-title'),
+            builderIcon: document.getElementById('builder-icon'),
+            builderText: document.getElementById('builder-text'),
+            builderHeaders: document.getElementById('builder-headers'),
+            builderRows: document.getElementById('builder-rows'),
+            addRowBtn: document.getElementById('add-row-btn'),
+            builderEquation: document.getElementById('builder-equation'),
+            builderSteps: document.getElementById('builder-steps'),
+            addInitStepBtn: document.getElementById('add-init-step-btn'),
+            addCellStepBtn: document.getElementById('add-cell-step-btn'),
+            addEquationStepBtn: document.getElementById('add-equation-step-btn'),
+            builderError: document.getElementById('builder-error')
+        };
+
+        // --- FUNCTIONS ---
+
+        function init() {
+            loadCustomProblems();
+            renderSidebar();
+            loadProblem(currentProblemId);
+
+            dom.nextBtn.addEventListener('click', nextStep);
+            dom.resetBtn.addEventListener('click', () => loadProblem(currentProblemId));
+            dom.openBuilderBtn.addEventListener('click', openBuilderModal);
+            dom.closeBuilderBtn.addEventListener('click', closeBuilderModal);
+            dom.cancelBuilderBtn.addEventListener('click', closeBuilderModal);
+            dom.addRowBtn.addEventListener('click', () => addRowBuilderItem());
+            dom.addInitStepBtn.addEventListener('click', () => addStepBuilderItem({ type: 'init', desc: '' }));
+            dom.addCellStepBtn.addEventListener('click', () => addStepBuilderItem({ type: 'cell', desc: '', row: 1, col: 1 }));
+            dom.addEquationStepBtn.addEventListener('click', () => addStepBuilderItem({ type: 'equation', desc: '' }));
+            dom.saveProblemBtn.addEventListener('click', saveNewProblem);
+
+            dom.builderModal.addEventListener('click', (e) => {
+                if (e.target === dom.builderModal) {
+                    closeBuilderModal();
+                }
+            });
+
+            lucide.createIcons();
+        }
+
+        function loadCustomProblems() {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (!raw) return;
+            try {
+                const custom = JSON.parse(raw);
+                if (Array.isArray(custom)) {
+                    problems = [...baseProblems, ...custom.map(item => ({ ...item, isCustom: true }))];
+                }
+            } catch (err) {
+                console.error('Không đọc được custom problems từ localStorage:', err);
+            }
+        }
+
+        function saveCustomProblems() {
+            const custom = problems.filter(p => p.isCustom);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(custom));
+        }
+
+        function renderSidebar() {
+            dom.problemList.innerHTML = problems.map(p => `
+                <div class="relative">
+                    <button onclick="changeProblem('${p.id}')" id="btn-${p.id}" class="w-full text-left p-4 rounded-xl transition-all duration-200 border-2 pr-24 ${p.id === currentProblemId ? 'bg-blue-50 border-blue-500 text-blue-700 font-bold' : 'bg-white border-transparent hover:border-slate-200 text-slate-600'}">
+                        <div class="flex items-center gap-3">
+                            <i data-lucide="${p.icon}" class="${p.id === currentProblemId ? 'text-blue-500' : 'text-slate-400'}"></i>
+                            <span>${p.title}</span>
+                        </div>
+                    </button>
+                    ${p.isCustom ? `
+                        <div class="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                            <button type="button" onclick="editCustomProblem('${p.id}')" class="p-1.5 rounded-md bg-amber-100 hover:bg-amber-200 text-amber-700" title="Sửa bài này">
+                                <i data-lucide="pencil" class="w-4 h-4"></i>
+                            </button>
+                            <button type="button" onclick="deleteCustomProblem('${p.id}')" class="p-1.5 rounded-md bg-rose-100 hover:bg-rose-200 text-rose-700" title="Xóa bài này">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    ` : `
+                        <div class="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                            <button type="button" onclick="viewBaseProblemConfig('${p.id}')" class="p-1.5 rounded-md bg-sky-100 hover:bg-sky-200 text-sky-700" title="Xem cấu hình bài mẫu">
+                                <i data-lucide="eye" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    `}
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function changeProblem(id) {
+            currentProblemId = id;
+            renderSidebar();
+            loadProblem(id);
+        }
+
+        function loadProblem(id) {
+            const p = problems.find(x => x.id === id);
+            if (!p) return;
+            currentStep = 0;
+
+            // Cập nhật Header
+            dom.currentTitle.innerHTML = `<span class="p-2 bg-blue-100 text-blue-600 rounded-lg"><i data-lucide="${p.icon}"></i></span> ${p.title}`;
+            dom.totalSteps.textContent = p.steps.length - 1; // Step 0 is init
+            updateStepCounter();
+
+            // Cập nhật Text
+            dom.problemText.innerHTML = p.text;
+
+            // Dựng Bảng (ẩn nội dung các ô dữ liệu)
+            let tableHTML = `
+                <thead class="bg-slate-100 text-slate-600 font-bold">
+                    <tr>
+                        ${p.tableHeaders.map(h => `<th class="py-3 px-4 border-b border-r last:border-r-0">${h}</th>`).join('')}
+                    </tr>
+                </thead>
+                <tbody class="text-lg">
+            `;
+
+            p.tableRows.forEach((row, rIndex) => {
+                tableHTML += `<tr class="border-b last:border-0 hover:bg-slate-50 transition-colors">
+                    <td class="py-4 px-4 border-r font-bold text-slate-700 bg-white">${row.label}</td>
+                    ${row.cells.map((cell, cIndex) => `
+                        <td class="py-4 px-4 border-r last:border-r-0 bg-white">
+                            <span id="cell-${rIndex}-${cIndex}" class="cell-hidden inline-block w-full text-center text-blue-700 font-bold math-box">${cell}</span>
+                        </td>
+                    `).join('')}
+                </tr>`;
+            });
+            tableHTML += `</tbody>`;
+            dom.dataTable.innerHTML = tableHTML;
+
+            // Reset UI states
+            dom.analysisSection.classList.remove('hidden');
+            dom.equationSection.classList.add('hidden');
+            dom.hintText.classList.remove('hidden');
+            dom.nextBtn.disabled = false;
+
+            // Render MathJax cho bảng
+            if (window.MathJax) { MathJax.typesetPromise([dom.dataTable]); }
+
+            // Chạy Step 0 (Init)
+            executeStep(0);
+            lucide.createIcons();
+        }
+
+        function openBuilderModal() {
+            resetBuilderForm();
+            setBuilderReadonly(false);
+            dom.builderModalTitle.innerHTML = '<i data-lucide="pencil-ruler" class="w-5 h-5"></i> Soạn bài tập mới (dễ dùng)';
+            dom.builderModal.classList.remove('hidden');
+            dom.builderModal.classList.add('flex');
+            dom.builderTitle.focus();
+            lucide.createIcons();
+        }
+
+        function openBuilderModalForEdit(problemId) {
+            const p = problems.find(x => x.id === problemId && x.isCustom);
+            if (!p) return;
+
+            resetBuilderForm();
+            editingProblemId = problemId;
+            setBuilderReadonly(false);
+
+            dom.builderTitle.value = p.title || '';
+            dom.builderIcon.value = p.icon || 'book-open';
+            dom.builderText.value = p.text || '';
+            dom.builderHeaders.value = (p.tableHeaders || []).join(', ');
+            dom.builderEquation.value = p.equation || '';
+
+            dom.builderRows.innerHTML = '';
+            (p.tableRows || []).forEach(row => {
+                addRowBuilderItem({ label: row.label, cells: row.cells || [] });
+            });
+
+            dom.builderSteps.innerHTML = '';
+            (p.steps || []).forEach(step => {
+                addStepBuilderItem({
+                    type: step.type || 'init',
+                    desc: step.desc || '',
+                    hl: step.hl || '',
+                    row: typeof step.row === 'number' ? step.row + 1 : '',
+                    col: typeof step.col === 'number' ? step.col + 1 : ''
+                });
+            });
+
+            dom.saveProblemBtn.textContent = 'Cập nhật bài tập';
+            dom.builderModalTitle.innerHTML = '<i data-lucide="pencil-ruler" class="w-5 h-5"></i> Cập nhật bài tự tạo';
+            dom.builderModal.classList.remove('hidden');
+            dom.builderModal.classList.add('flex');
+            dom.builderTitle.focus();
+            lucide.createIcons();
+        }
+
+        function openBuilderModalForView(problemId) {
+            const p = problems.find(x => x.id === problemId && !x.isCustom);
+            if (!p) return;
+
+            resetBuilderForm();
+            builderViewMode = true;
+
+            dom.builderTitle.value = p.title || '';
+            dom.builderIcon.value = p.icon || 'book-open';
+            dom.builderText.value = p.text || '';
+            dom.builderHeaders.value = (p.tableHeaders || []).join(', ');
+            dom.builderEquation.value = p.equation || '';
+
+            dom.builderRows.innerHTML = '';
+            (p.tableRows || []).forEach(row => {
+                addRowBuilderItem({ label: row.label, cells: row.cells || [] });
+            });
+
+            dom.builderSteps.innerHTML = '';
+            (p.steps || []).forEach(step => {
+                addStepBuilderItem({
+                    type: step.type || 'init',
+                    desc: step.desc || '',
+                    hl: step.hl || '',
+                    row: typeof step.row === 'number' ? step.row + 1 : '',
+                    col: typeof step.col === 'number' ? step.col + 1 : ''
+                });
+            });
+
+            setBuilderReadonly(true);
+            dom.builderModalTitle.innerHTML = '<i data-lucide="eye" class="w-5 h-5"></i> Xem cấu hình bài mẫu';
+            dom.builderModal.classList.remove('hidden');
+            dom.builderModal.classList.add('flex');
+            lucide.createIcons();
+        }
+
+        function closeBuilderModal() {
+            dom.builderModal.classList.add('hidden');
+            dom.builderModal.classList.remove('flex');
+            editingProblemId = null;
+            builderViewMode = false;
+            setBuilderReadonly(false);
+            dom.saveProblemBtn.textContent = 'Lưu bài tập';
+            dom.builderModalTitle.innerHTML = '<i data-lucide="pencil-ruler" class="w-5 h-5"></i> Soạn bài tập mới (dễ dùng)';
+            hideBuilderError();
+        }
+
+        function resetBuilderForm() {
+            dom.builderTitle.value = '';
+            dom.builderIcon.value = 'book-open';
+            dom.builderText.value = '';
+            dom.builderHeaders.value = 'Trạng thái, Đại lượng 1, Đại lượng 2, Đại lượng 3';
+            dom.builderEquation.value = '';
+            dom.builderRows.innerHTML = '';
+            dom.builderSteps.innerHTML = '';
+
+            addRowBuilderItem({ label: 'Dòng 1', cells: ['\\(x\\)', '', ''] });
+            addRowBuilderItem({ label: 'Dòng 2', cells: ['', '', ''] });
+            addStepBuilderItem({ type: 'init', desc: 'Gọi ẩn và nêu điều kiện của ẩn.' });
+            addStepBuilderItem({ type: 'cell', row: 1, col: 1, desc: 'Điền ô dữ liệu đầu tiên.', hl: '' });
+            addStepBuilderItem({ type: 'equation', desc: 'Lập phương trình từ mối quan hệ trong đề.', hl: '' });
+
+            editingProblemId = null;
+            builderViewMode = false;
+            dom.saveProblemBtn.textContent = 'Lưu bài tập';
+            hideBuilderError();
+        }
+
+        function setBuilderReadonly(readonly) {
+            const fields = dom.builderModal.querySelectorAll('input, textarea, select');
+            fields.forEach(field => {
+                field.disabled = readonly;
+            });
+
+            dom.addRowBtn.disabled = readonly;
+            dom.addInitStepBtn.disabled = readonly;
+            dom.addCellStepBtn.disabled = readonly;
+            dom.addEquationStepBtn.disabled = readonly;
+
+            dom.saveProblemBtn.classList.toggle('hidden', readonly);
+            dom.cancelBuilderBtn.textContent = readonly ? 'Đóng' : 'Hủy';
+
+            dom.builderModal.querySelectorAll('.remove-row-btn, .remove-step-btn').forEach(btn => {
+                btn.classList.toggle('hidden', readonly);
+            });
+        }
+
+        function addRowBuilderItem(initial = { label: '', cells: ['', '', ''] }) {
+            const rowEl = document.createElement('div');
+            rowEl.className = 'grid md:grid-cols-12 gap-2 bg-slate-50 border border-slate-200 rounded-lg p-3';
+            rowEl.innerHTML = `
+                <input type="text" placeholder="Nhãn dòng"
+                    class="builder-row-label md:col-span-3 border border-slate-300 rounded px-2 py-1.5"
+                    value="${initial.label || ''}">
+                <input type="text" placeholder="Các ô (phân tách dấu phẩy)"
+                    class="builder-row-cells md:col-span-8 border border-slate-300 rounded px-2 py-1.5"
+                    value="${(initial.cells || []).join(', ')}">
+                <button type="button"
+                    class="remove-row-btn md:col-span-1 bg-rose-100 hover:bg-rose-200 text-rose-700 rounded px-2 py-1.5 font-semibold">X</button>
+            `;
+
+            rowEl.querySelector('.remove-row-btn').addEventListener('click', () => rowEl.remove());
+            dom.builderRows.appendChild(rowEl);
+            if (builderViewMode) {
+                rowEl.querySelector('.remove-row-btn').classList.add('hidden');
+            }
+        }
+
+        function addStepBuilderItem(initial = { type: 'init', desc: '', hl: '', row: '', col: '' }) {
+            const stepEl = document.createElement('div');
+            stepEl.className = 'grid md:grid-cols-12 gap-2 bg-slate-50 border border-slate-200 rounded-lg p-3';
+            stepEl.innerHTML = `
+                <select class="builder-step-type md:col-span-2 border border-slate-300 rounded px-2 py-1.5">
+                    <option value="init" ${initial.type === 'init' ? 'selected' : ''}>Mở đầu</option>
+                    <option value="cell" ${initial.type === 'cell' ? 'selected' : ''}>Hiện ô trong bảng</option>
+                    <option value="equation" ${initial.type === 'equation' ? 'selected' : ''}>Hiện phương trình</option>
+                </select>
+                <input type="text" placeholder="Lời hướng dẫn hiển thị cho học sinh"
+                    class="builder-step-desc md:col-span-5 border border-slate-300 rounded px-2 py-1.5"
+                    value="${initial.desc || ''}">
+                <input type="text" placeholder="Mã tô sáng (nâng cao, ví dụ hl-1)"
+                    class="builder-step-hl md:col-span-2 border border-slate-300 rounded px-2 py-1.5"
+                    value="${initial.hl || ''}">
+                <input type="number" min="1" placeholder="Hàng"
+                    class="builder-step-row md:col-span-1 border border-slate-300 rounded px-2 py-1.5"
+                    value="${initial.row ?? ''}">
+                <input type="number" min="1" placeholder="Cột"
+                    class="builder-step-col md:col-span-1 border border-slate-300 rounded px-2 py-1.5"
+                    value="${initial.col ?? ''}">
+                <button type="button"
+                    class="remove-step-btn md:col-span-1 bg-rose-100 hover:bg-rose-200 text-rose-700 rounded px-2 py-1.5 font-semibold">X</button>
+            `;
+
+            const typeSelect = stepEl.querySelector('.builder-step-type');
+            typeSelect.addEventListener('change', () => updateStepEditorState(stepEl));
+            stepEl.querySelector('.remove-step-btn').addEventListener('click', () => stepEl.remove());
+            dom.builderSteps.appendChild(stepEl);
+            updateStepEditorState(stepEl);
+            if (builderViewMode) {
+                stepEl.querySelector('.remove-step-btn').classList.add('hidden');
+            }
+        }
+
+        function updateStepEditorState(stepEl) {
+            const type = stepEl.querySelector('.builder-step-type').value;
+            const rowInput = stepEl.querySelector('.builder-step-row');
+            const colInput = stepEl.querySelector('.builder-step-col');
+            const isCell = type === 'cell';
+
+            rowInput.disabled = !isCell;
+            colInput.disabled = !isCell;
+            rowInput.classList.toggle('bg-slate-100', !isCell);
+            colInput.classList.toggle('bg-slate-100', !isCell);
+        }
+
+        function showBuilderError(message) {
+            dom.builderError.textContent = message;
+            dom.builderError.classList.remove('hidden');
+        }
+
+        function hideBuilderError() {
+            dom.builderError.classList.add('hidden');
+            dom.builderError.textContent = '';
+        }
+
+        function parseCommaList(value) {
+            return value.split(',').map(s => s.trim()).filter(Boolean);
+        }
+
+        function saveNewProblem() {
+            if (builderViewMode) {
+                return;
+            }
+            hideBuilderError();
+
+            const title = dom.builderTitle.value.trim();
+            const icon = dom.builderIcon.value.trim() || 'book-open';
+            const text = dom.builderText.value.trim();
+            const headers = parseCommaList(dom.builderHeaders.value.trim());
+            const equation = dom.builderEquation.value.trim();
+
+            if (!title) {
+                showBuilderError('Vui lòng nhập tiêu đề bài toán.');
+                return;
+            }
+            if (!text) {
+                showBuilderError('Vui lòng nhập đề bài.');
+                return;
+            }
+            if (headers.length < 2) {
+                showBuilderError('Cần ít nhất 2 tiêu đề cột cho bảng phân tích.');
+                return;
+            }
+            if (!equation) {
+                showBuilderError('Vui lòng nhập phương trình cần lập.');
+                return;
+            }
+
+            const rowItems = [...dom.builderRows.querySelectorAll('.grid')];
+            if (rowItems.length === 0) {
+                showBuilderError('Cần ít nhất 1 dòng dữ liệu cho bảng.');
+                return;
+            }
+
+            const tableRows = rowItems.map((item, index) => {
+                const label = item.querySelector('.builder-row-label').value.trim() || `Dòng ${index + 1}`;
+                const cellsRaw = parseCommaList(item.querySelector('.builder-row-cells').value);
+                const needed = headers.length - 1;
+                const cells = [...cellsRaw];
+                while (cells.length < needed) cells.push('');
+                return {
+                    label,
+                    cells: cells.slice(0, needed)
+                };
+            });
+
+            const stepItems = [...dom.builderSteps.querySelectorAll('.grid')];
+            if (stepItems.length === 0) {
+                showBuilderError('Cần ít nhất 1 bước hướng dẫn.');
+                return;
+            }
+
+            const steps = [];
+            for (const item of stepItems) {
+                const type = item.querySelector('.builder-step-type').value;
+                const desc = item.querySelector('.builder-step-desc').value.trim();
+                const hl = item.querySelector('.builder-step-hl').value.trim();
+                const rowText = item.querySelector('.builder-step-row').value;
+                const colText = item.querySelector('.builder-step-col').value;
+
+                if (!desc) {
+                    showBuilderError('Mỗi bước cần có mô tả để hiển thị cho học sinh.');
+                    return;
+                }
+
+                const step = { type, desc };
+                if (hl) step.hl = hl;
+
+                if (type === 'cell') {
+                    const row = Number(rowText);
+                    const col = Number(colText);
+                    if (!Number.isInteger(row) || !Number.isInteger(col) || row < 1 || col < 1) {
+                        showBuilderError('Bước hiện ô cần nhập Hàng và Cột là số nguyên từ 1 trở lên.');
+                        return;
+                    }
+                    step.row = row - 1;
+                    step.col = col - 1;
+                }
+
+                steps.push(step);
+            }
+
+            const newProblem = {
+                id: editingProblemId || `custom-${Date.now()}`,
+                title,
+                icon,
+                text,
+                tableHeaders: headers,
+                tableRows,
+                equation,
+                steps,
+                isCustom: true
+            };
+
+            if (editingProblemId) {
+                const idx = problems.findIndex(p => p.id === editingProblemId && p.isCustom);
+                if (idx === -1) {
+                    showBuilderError('Không tìm thấy bài tự tạo để cập nhật.');
+                    return;
+                }
+                problems[idx] = newProblem;
+            } else {
+                problems.push(newProblem);
+            }
+
+            saveCustomProblems();
+            renderSidebar();
+            closeBuilderModal();
+            changeProblem(newProblem.id);
+        }
+
+        function editCustomProblem(id) {
+            openBuilderModalForEdit(id);
+        }
+
+        function deleteCustomProblem(id) {
+            const target = problems.find(p => p.id === id && p.isCustom);
+            if (!target) return;
+
+            const ok = window.confirm(`Bạn có chắc muốn xóa bài "${target.title}"?`);
+            if (!ok) return;
+
+            problems = [...baseProblems, ...problems.filter(p => p.isCustom && p.id !== id)];
+            if (!problems.find(p => p.id === currentProblemId)) {
+                currentProblemId = baseProblems[0].id;
+            }
+            saveCustomProblems();
+            renderSidebar();
+            loadProblem(currentProblemId);
+        }
+
+        function viewBaseProblemConfig(id) {
+            openBuilderModalForView(id);
+        }
+
+        window.changeProblem = changeProblem;
+        window.editCustomProblem = editCustomProblem;
+        window.deleteCustomProblem = deleteCustomProblem;
+        window.viewBaseProblemConfig = viewBaseProblemConfig;
+
+        function nextStep() {
+            const p = problems.find(x => x.id === currentProblemId);
+            if (currentStep < p.steps.length - 1) {
+                currentStep++;
+                executeStep(currentStep);
+                updateStepCounter();
+            }
+            if (currentStep === p.steps.length - 1) {
+                dom.nextBtn.disabled = true;
+            }
+        }
+
+        function executeStep(stepIndex) {
+            const p = problems.find(x => x.id === currentProblemId);
+            const stepData = p.steps[stepIndex];
+
+            // Xóa highlight cũ
+            document.querySelectorAll('.highlight-active').forEach(el => el.classList.remove('highlight-active'));
+
+            // Hiển thị gợi ý
+            dom.hintText.textContent = `Giáo viên nói: "${stepData.desc}"`;
+            dom.hintText.classList.add('fade-in');
+            setTimeout(() => dom.hintText.classList.remove('fade-in'), 500);
+
+            // Bôi đen chữ đề bài nếu có
+            if (stepData.hl) {
+                const hlEl = document.getElementById(stepData.hl);
+                if (hlEl) hlEl.classList.add('highlight-active');
+            }
+
+            // Xử lý Hành động theo Type
+            if (stepData.type === 'cell') {
+                const cellSpan = document.getElementById(`cell-${stepData.row}-${stepData.col}`);
+                if (cellSpan) {
+                    cellSpan.classList.remove('cell-hidden');
+                    cellSpan.classList.add('cell-visible');
+                    // Cấp hiệu ứng cho ô td chứa nó
+                    cellSpan.parentElement.classList.add('bg-yellow-50');
+                    setTimeout(() => cellSpan.parentElement.classList.remove('bg-yellow-50'), 1000);
+                }
+            }
+            else if (stepData.type === 'equation') {
+                dom.equationSection.classList.remove('hidden');
+                dom.equationSection.classList.add('fade-in');
+                dom.equationBox.innerHTML = p.equation;
+                if (window.MathJax) { MathJax.typesetPromise([dom.equationBox]); }
+            }
+        }
+
+        function updateStepCounter() {
+            dom.stepCounter.textContent = currentStep;
+        }
+
+        // --- KHỞI CHẠY ---
+        window.onload = init;
+
+    </script>
+</body>
+
+</html>
