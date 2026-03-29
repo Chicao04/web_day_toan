@@ -61,6 +61,15 @@
             opacity: 1;
             animation: fadeIn 0.4s;
         }
+
+        #builder-text-editor:empty:before {
+            content: attr(data-placeholder);
+            color: #9ca3af;
+        }
+
+        #builder-editor-toolbar button:disabled {
+            cursor: not-allowed;
+        }
     </style>
 </head>
 
@@ -188,9 +197,21 @@
 
                 <div>
                     <label class="block text-sm font-bold text-slate-600 mb-2">Đề bài</label>
-                    <textarea id="builder-text" rows="4"
-                        class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-300"
-                        placeholder="Nhập nguyên văn đề bài ở đây..."></textarea>
+                    <div class="border border-slate-300 rounded-xl overflow-hidden bg-white">
+                        <div id="builder-editor-toolbar" class="border-b bg-slate-50 p-2 flex flex-wrap gap-1">
+                            <button type="button" data-cmd="bold" class="builder-editor-btn px-2 py-1 rounded border border-slate-300 hover:bg-slate-100 font-bold">B</button>
+                            <button type="button" data-cmd="italic" class="builder-editor-btn px-2 py-1 rounded border border-slate-300 hover:bg-slate-100 italic">I</button>
+                            <button type="button" data-cmd="underline" class="builder-editor-btn px-2 py-1 rounded border border-slate-300 hover:bg-slate-100 underline">U</button>
+                            <button type="button" data-cmd="hiliteColor" data-value="#fef08a" class="builder-editor-btn px-2 py-1 rounded border border-slate-300 hover:bg-slate-100">Boi vang</button>
+                            <button type="button" data-cmd="foreColor" data-value="#dc2626" class="builder-editor-btn px-2 py-1 rounded border border-slate-300 hover:bg-slate-100 text-red-600">Do</button>
+                            <button type="button" data-cmd="foreColor" data-value="#2563eb" class="builder-editor-btn px-2 py-1 rounded border border-slate-300 hover:bg-slate-100 text-blue-600">Xanh</button>
+                            <button type="button" id="builder-clear-format-btn" class="px-2 py-1 rounded border border-slate-300 hover:bg-slate-100">Xoa dinh dang</button>
+                        </div>
+                        <div id="builder-text-editor" contenteditable="true"
+                            class="min-h-[150px] px-3 py-2 focus:outline-none"
+                            data-placeholder="Nhập nguyên văn đề bài ở đây..."></div>
+                    </div>
+                    <textarea id="builder-text" class="hidden"></textarea>
                     <p class="mt-1 text-xs text-slate-500">Nếu muốn tô sáng chữ trong đề, dùng dạng nâng cao với mã như hl-1, hl-2.</p>
                 </div>
 
@@ -357,6 +378,9 @@
             saveProblemBtn: document.getElementById('save-problem-btn'),
             builderModalTitle: document.getElementById('builder-modal-title'),
             builderTitle: document.getElementById('builder-title'),
+            builderEditorToolbar: document.getElementById('builder-editor-toolbar'),
+            builderTextEditor: document.getElementById('builder-text-editor'),
+            builderClearFormatBtn: document.getElementById('builder-clear-format-btn'),
             builderIcon: document.getElementById('builder-icon'),
             builderText: document.getElementById('builder-text'),
             builderHeaders: document.getElementById('builder-headers'),
@@ -387,6 +411,18 @@
             dom.addCellStepBtn.addEventListener('click', () => addStepBuilderItem({ type: 'cell', desc: '', row: 1, col: 1 }));
             dom.addEquationStepBtn.addEventListener('click', () => addStepBuilderItem({ type: 'equation', desc: '' }));
             dom.saveProblemBtn.addEventListener('click', saveNewProblem);
+
+            dom.builderEditorToolbar.querySelectorAll('[data-cmd]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const cmd = btn.dataset.cmd;
+                    const value = btn.dataset.value || null;
+                    applyEditorCommand(cmd, value);
+                });
+            });
+            dom.builderClearFormatBtn.addEventListener('click', () => {
+                applyEditorCommand('removeFormat');
+            });
+            dom.builderTextEditor.addEventListener('input', syncBuilderTextToHidden);
 
             dom.builderModal.addEventListener('click', (e) => {
                 if (e.target === dom.builderModal) {
@@ -437,6 +473,9 @@
                         <div class="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
                             <button type="button" onclick="viewBaseProblemConfig('${p.id}')" class="p-1.5 rounded-md bg-sky-100 hover:bg-sky-200 text-sky-700" title="Xem cấu hình bài mẫu">
                                 <i data-lucide="eye" class="w-4 h-4"></i>
+                            </button>
+                            <button type="button" onclick="copyBaseProblem('${p.id}')" class="p-1.5 rounded-md bg-emerald-100 hover:bg-emerald-200 text-emerald-700" title="Sao chép bài mẫu này">
+                                <i data-lucide="copy" class="w-4 h-4"></i>
                             </button>
                         </div>
                     `}
@@ -519,27 +558,7 @@
             editingProblemId = problemId;
             setBuilderReadonly(false);
 
-            dom.builderTitle.value = p.title || '';
-            dom.builderIcon.value = p.icon || 'book-open';
-            dom.builderText.value = p.text || '';
-            dom.builderHeaders.value = (p.tableHeaders || []).join(', ');
-            dom.builderEquation.value = p.equation || '';
-
-            dom.builderRows.innerHTML = '';
-            (p.tableRows || []).forEach(row => {
-                addRowBuilderItem({ label: row.label, cells: row.cells || [] });
-            });
-
-            dom.builderSteps.innerHTML = '';
-            (p.steps || []).forEach(step => {
-                addStepBuilderItem({
-                    type: step.type || 'init',
-                    desc: step.desc || '',
-                    hl: step.hl || '',
-                    row: typeof step.row === 'number' ? step.row + 1 : '',
-                    col: typeof step.col === 'number' ? step.col + 1 : ''
-                });
-            });
+            fillBuilderFromProblem(p);
 
             dom.saveProblemBtn.textContent = 'Cập nhật bài tập';
             dom.builderModalTitle.innerHTML = '<i data-lucide="pencil-ruler" class="w-5 h-5"></i> Cập nhật bài tự tạo';
@@ -555,10 +574,38 @@
 
             resetBuilderForm();
             builderViewMode = true;
+            fillBuilderFromProblem(p);
 
+            setBuilderReadonly(true);
+            dom.builderModalTitle.innerHTML = '<i data-lucide="eye" class="w-5 h-5"></i> Xem cấu hình bài mẫu';
+            dom.builderModal.classList.remove('hidden');
+            dom.builderModal.classList.add('flex');
+            lucide.createIcons();
+        }
+
+        function openBuilderModalForDuplicate(problemId) {
+            const p = problems.find(x => x.id === problemId && !x.isCustom);
+            if (!p) return;
+
+            resetBuilderForm();
+            editingProblemId = null;
+            builderViewMode = false;
+            setBuilderReadonly(false);
+            fillBuilderFromProblem(p);
+
+            dom.builderTitle.value = `${p.title} (Bản sao)`;
+            dom.saveProblemBtn.textContent = 'Lưu bài tập';
+            dom.builderModalTitle.innerHTML = '<i data-lucide="copy" class="w-5 h-5"></i> Sao chép từ bài mẫu';
+            dom.builderModal.classList.remove('hidden');
+            dom.builderModal.classList.add('flex');
+            dom.builderTitle.focus();
+            lucide.createIcons();
+        }
+
+        function fillBuilderFromProblem(p) {
             dom.builderTitle.value = p.title || '';
             dom.builderIcon.value = p.icon || 'book-open';
-            dom.builderText.value = p.text || '';
+            setBuilderEditorHTML(p.text || '');
             dom.builderHeaders.value = (p.tableHeaders || []).join(', ');
             dom.builderEquation.value = p.equation || '';
 
@@ -577,12 +624,6 @@
                     col: typeof step.col === 'number' ? step.col + 1 : ''
                 });
             });
-
-            setBuilderReadonly(true);
-            dom.builderModalTitle.innerHTML = '<i data-lucide="eye" class="w-5 h-5"></i> Xem cấu hình bài mẫu';
-            dom.builderModal.classList.remove('hidden');
-            dom.builderModal.classList.add('flex');
-            lucide.createIcons();
         }
 
         function closeBuilderModal() {
@@ -599,7 +640,7 @@
         function resetBuilderForm() {
             dom.builderTitle.value = '';
             dom.builderIcon.value = 'book-open';
-            dom.builderText.value = '';
+            setBuilderEditorHTML('');
             dom.builderHeaders.value = 'Trạng thái, Đại lượng 1, Đại lượng 2, Đại lượng 3';
             dom.builderEquation.value = '';
             dom.builderRows.innerHTML = '';
@@ -623,10 +664,18 @@
                 field.disabled = readonly;
             });
 
+            dom.builderTextEditor.contentEditable = readonly ? 'false' : 'true';
+            dom.builderTextEditor.classList.toggle('bg-slate-100', readonly);
+
             dom.addRowBtn.disabled = readonly;
             dom.addInitStepBtn.disabled = readonly;
             dom.addCellStepBtn.disabled = readonly;
             dom.addEquationStepBtn.disabled = readonly;
+
+            dom.builderEditorToolbar.querySelectorAll('button').forEach(btn => {
+                btn.disabled = readonly;
+                btn.classList.toggle('opacity-50', readonly);
+            });
 
             dom.saveProblemBtn.classList.toggle('hidden', readonly);
             dom.cancelBuilderBtn.textContent = readonly ? 'Đóng' : 'Hủy';
@@ -718,11 +767,28 @@
             return value.split(',').map(s => s.trim()).filter(Boolean);
         }
 
+        function syncBuilderTextToHidden() {
+            dom.builderText.value = dom.builderTextEditor.innerHTML.trim();
+        }
+
+        function setBuilderEditorHTML(html) {
+            dom.builderTextEditor.innerHTML = html || '';
+            syncBuilderTextToHidden();
+        }
+
+        function applyEditorCommand(command, value = null) {
+            if (builderViewMode) return;
+            dom.builderTextEditor.focus();
+            document.execCommand(command, false, value);
+            syncBuilderTextToHidden();
+        }
+
         function saveNewProblem() {
             if (builderViewMode) {
                 return;
             }
             hideBuilderError();
+            syncBuilderTextToHidden();
 
             const title = dom.builderTitle.value.trim();
             const icon = dom.builderIcon.value.trim() || 'book-open';
@@ -854,10 +920,15 @@
             openBuilderModalForView(id);
         }
 
+        function copyBaseProblem(id) {
+            openBuilderModalForDuplicate(id);
+        }
+
         window.changeProblem = changeProblem;
         window.editCustomProblem = editCustomProblem;
         window.deleteCustomProblem = deleteCustomProblem;
         window.viewBaseProblemConfig = viewBaseProblemConfig;
+        window.copyBaseProblem = copyBaseProblem;
 
         function nextStep() {
             const p = problems.find(x => x.id === currentProblemId);
